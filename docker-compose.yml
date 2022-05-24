@@ -1,0 +1,66 @@
+version: "3.5"
+services:
+    mysql-db:
+        image: mysql:8
+        ports:
+            - "33061:3306"
+        volumes:
+            - mysqlvol:/var/lib/mysql
+            - ./mycustom.cnf:/etc/mysql/conf.d/custom.cnf
+        environment:
+            - MYSQL_ROOT_PASSWORD=S3cret
+            - MYSQL_PASSWORD=An0thrS3crt
+            - MYSQL_USER=shop_user
+            - MYSQL_DATABASE=zend_db
+
+    backend-nginx:
+        build:
+            context: docker/backend/nginx
+            dockerfile: development/Dockerfile
+        ports:
+            - "8081:80"
+        volumes:
+            - ./backend:/app
+        depends_on:
+            - backend-php-fpm
+
+    backend-php-fpm:
+        build:
+            context: docker/backend/php-fpm
+            dockerfile: development/Dockerfile
+        env_file:
+            - ./config/backend-php/.env.dev
+        volumes:
+            - ./backend:/app
+        depends_on:
+            - mysql-db
+
+    backend-php-cli:
+        build:
+            context: docker/backend/php-cli
+            dockerfile: development/Dockerfile
+        env_file:
+            - ./config/backend-php/.env.dev
+        volumes:
+            - ./backend:/app
+        depends_on:
+            - mysql-db
+
+    rabbitmq:
+        image: rabbitmq:3-management-alpine
+        volumes:
+            - dockervoletc:/etc/rabbitmq/
+            - dockervoldata:/var/lib/rabbitmq/
+            - dockervollogs:/var/log/rabbitmq/
+        environment:
+            RABBITMQ_DEFAULT_USER: user
+            RABBITMQ_DEFAULT_PASS: secret
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+
+volumes:
+    mysqlvol:
+    dockervoletc:
+    dockervoldata:
+    dockervollogs:
